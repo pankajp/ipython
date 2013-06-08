@@ -1540,6 +1540,18 @@ class ConsoleWidget(LoggingConfigurable, QtGui.QWidget):
         else:
             return None
 
+    def _get_last_lines(self, text, num_lines):
+        """ Return last specified number of lines of text (like `tail -n`).
+        """
+        pos = len(text)
+        if pos < num_lines:
+            return text
+        for i in xrange(num_lines):
+            pos = text.rfind('\n', None, pos)
+            if pos == -1:
+                return text
+        return text[pos:]
+
     def _get_prompt_cursor(self):
         """ Convenience method that returns a cursor for the prompt position.
         """
@@ -1649,6 +1661,12 @@ class ConsoleWidget(LoggingConfigurable, QtGui.QWidget):
             if enabled.
         """
         cursor.beginEditBlock()
+        # Clip the text to last `buffer_size` lines.
+        # maximumBlockCount() can be different from self.buffer_size in
+        # case input prompt is active.
+        buffer_size = self._control.document().maximumBlockCount()
+        if buffer_size > 0:
+            text = self._get_last_lines(text, buffer_size)
         if self.ansi_codes:
             for substring in self._ansi_processor.split_string(text):
                 for act in self._ansi_processor.actions:
