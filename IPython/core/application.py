@@ -38,6 +38,7 @@ from IPython.config.application import Application, catch_config_error
 from IPython.config.loader import ConfigFileNotFound
 from IPython.core import release, crashhandler
 from IPython.core.profiledir import ProfileDir, ProfileDirError
+from IPython.utils import py3compat
 from IPython.utils.path import get_ipython_dir, get_ipython_package_dir
 from IPython.utils.traitlets import List, Unicode, Type, Bool, Dict, Set, Instance
 
@@ -208,9 +209,15 @@ class BaseIPythonApplication(Application):
             return crashhandler.crash_handler_lite(etype, evalue, tb)
     
     def _ipython_dir_changed(self, name, old, new):
-        if old in sys.path:
-            sys.path.remove(old)
-        sys.path.append(os.path.abspath(new))
+        str_old = py3compat.cast_bytes_py2(os.path.abspath(old),
+            sys.getfilesystemencoding()
+        )
+        if str_old in sys.path:
+            sys.path.remove(str_old)
+        str_path = py3compat.cast_bytes_py2(os.path.abspath(new),
+            sys.getfilesystemencoding()
+        )
+        sys.path.append(str_path)
         if not os.path.isdir(new):
             os.makedirs(new, mode=0o777)
         readme = os.path.join(new, 'README')
@@ -313,6 +320,10 @@ class BaseIPythonApplication(Application):
                     self.exit(1)
             else:
                 self.log.info("Using existing profile dir: %r"%location)
+            # if profile_dir is specified explicitly, set profile name
+            dir_name = os.path.basename(p.location)
+            if dir_name.startswith('profile_'):
+                self.profile = dir_name[8:]
 
         self.profile_dir = p
         self.config_file_paths.append(p.location)

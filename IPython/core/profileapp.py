@@ -99,7 +99,10 @@ def list_profiles_in(path):
     files = os.listdir(path)
     profiles = []
     for f in files:
-        full_path = os.path.join(path, f)
+        try:
+            full_path = os.path.join(path, f)
+        except UnicodeError:
+            continue
         if os.path.isdir(full_path) and f.startswith('profile_'):
             profiles.append(f.split('_',1)[-1])
     return profiles
@@ -280,8 +283,8 @@ class ProfileCreate(BaseIPythonApplication):
             app.log = self.log
             app.overwrite = self.overwrite
             app.copy_config_files=True
-            app.profile = self.profile
-            app.init_profile_dir()
+            app.ipython_dir=self.ipython_dir
+            app.profile_dir=self.profile_dir
             app.init_config_files()
 
     def stage_default_config_file(self):
